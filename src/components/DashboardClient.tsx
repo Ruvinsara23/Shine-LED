@@ -191,9 +191,9 @@ export default function DashboardClient() {
     <div className="flex-1 space-y-4 pt-2">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-4xl font-black tracking-tight text-black uppercase">Dashboard</h2>
+          <h2 className="text-4xl font-black tracking-tight text-black uppercase">Shine LED</h2>
           <p className="text-black font-semibold text-lg mt-1 border-b-2 border-dashed border-black inline-block">
-            Enterprise analytics block for media networks.
+            Data Analytics Dashboard
           </p>
         </div>
         
@@ -205,7 +205,7 @@ export default function DashboardClient() {
             variant="default"
           >
             <Trash2 className="mr-2 h-5 w-5" />
-            CLEAR DB
+            CLEAR DATA
           </Button>
 
           {activeTab === "analytics" && (
@@ -228,9 +228,9 @@ export default function DashboardClient() {
             <BarChart3 className="w-5 h-5 mr-3" />
             Analytics
           </TabsTrigger>
-          <TabsTrigger value="ingestion" className="flex-1 rounded-t-lg rounded-b-none border-2 border-b-0 border-black bg-[#fffdf7] text-black text-lg uppercase font-black data-[state=active]:bg-[#ffc900] data-[state=active]:shadow-none py-3 px-6 -mb-[4px] relative z-10">
+          <TabsTrigger value="upload" className="flex-1 rounded-t-lg rounded-b-none border-2 border-b-0 border-black bg-[#fffdf7] text-black text-lg uppercase font-black data-[state=active]:bg-[#ffc900] data-[state=active]:shadow-none py-3 px-6 -mb-[4px] relative z-10">
             <UploadCloud className="w-5 h-5 mr-3" />
-            Ingestion
+            Upload
           </TabsTrigger>
         </TabsList>
 
@@ -392,21 +392,20 @@ export default function DashboardClient() {
           </Card>
         </TabsContent>
 
-        {/* INGESTION TAB */}
-        <TabsContent value="ingestion" className="outline-none">
+        <TabsContent value="upload" className="outline-none">
           <div className="max-w-4xl mx-auto mt-6">
             <Card className="shadow-[8px_8px_0_0_#000] border-4 border-black rounded-none bg-white">
               <CardHeader className="text-center py-10 border-b-4 border-black bg-[#ffc900]">
-                <CardTitle className="text-4xl font-black text-black uppercase tracking-wider">Log Ingestion Terminal</CardTitle>
+                <CardTitle className="text-4xl font-black text-black uppercase tracking-wider">Upload Log Files</CardTitle>
                 <CardDescription className="text-xl mt-3 font-semibold text-black/80">
-                  Drop large batches of `.plylog` files securely into the processor.
+                  Select your `.plylog` files to upload them to the database.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-10 space-y-10">
                 <div className="space-y-4">
                   <Label className="text-lg font-black flex items-center gap-2 text-black uppercase">
                     <MonitorPlay className="h-6 w-6 text-black" />
-                    Terminal Identifier
+                    Machine ID (Optional)
                   </Label>
                   <Input 
                     className="h-16 text-xl p-4 bg-[#fffdf7] border-4 border-black focus-visible:ring-0 shadow-[4px_4px_0_0_#000] rounded-none font-bold"
@@ -419,7 +418,7 @@ export default function DashboardClient() {
                 <div className="space-y-4">
                   <Label className="text-lg font-black flex items-center gap-2 text-black uppercase">
                     <Settings2 className="h-6 w-6 text-black" />
-                    Source Queue Dropzone
+                    Select Files
                   </Label>
                   <div className="group relative border-4 border-black bg-white hover:bg-[#ff90e8] shadow-[4px_4px_0_0_#000] active:translate-y-1 active:shadow-none transition-all rounded-none p-16 flex flex-col items-center justify-center text-center cursor-pointer min-h-[300px]">
                      <input 
@@ -449,12 +448,12 @@ export default function DashboardClient() {
                   disabled={uploading || files.length === 0} 
                   className="w-full h-20 text-2xl font-black tracking-widest uppercase shadow-[6px_6px_0_0_#000] bg-black hover:bg-black/90 text-white rounded-none"
                 >
-                  {uploading ? `Parsing... (${progress.done}/${progress.total})` : "INITIATE PARSING"}
+                  {uploading ? `Uploading... (${progress.done}/${progress.total})` : "UPLOAD FILES"}
                 </Button>
 
                 {uploadResults.length > 0 && (
                   <div className="mt-10 border-4 border-black rounded-none p-6 h-80 overflow-y-auto bg-white text-sm shadow-[inset_0_4px_10px_rgba(0,0,0,0.1)] space-y-3">
-                    <p className="text-black font-black text-xl mb-4 border-b-2 border-black pb-2 uppercase tracking-wide">Operation Output Log</p>
+                    <p className="text-black font-black text-xl mb-4 border-b-2 border-black pb-2 uppercase tracking-wide">Upload Results</p>
                     {uploadResults.map((r, i) => (
                       <div key={i} className={`flex items-center justify-between p-4 border-2 border-black shadow-[2px_2px_0_0_#000] ${r.status.includes('Failed') || r.status.includes('Error') ? 'bg-red-500 text-white' : 'bg-green-400 text-black'}`}>
                         <span className="font-bold truncate mr-4">{r.name}</span>
