@@ -159,16 +159,17 @@ export default function DashboardClient() {
       const fullData = json.data || []
       
       const csvData = fullData.map((r: any) => ({
-        "Name": r.media_name,
+        "Media Name": r.media_name,
         "Start Time": new Date(r.start_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
         "End Time": new Date(r.end_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
-        "Duration ": r.duration_text,
-        "PlayResult": r.play_result
+        "Duration": r.duration_text,
+        "Result": r.play_result === 'Succeed' ? 'SUCCESS' : 'FAILED',
+        "Machine ID": r.machine_id
       }))
       
       const headerLines = [
-        ["Play Log Report", "", "", "", ""],
-        ["Name", "Start Time", "End Time", "Duration ", "PlayResult"]
+        ["Play Log Report", "", "", "", "", ""],
+        ["Media Name", "Start Time", "End Time", "Duration", "Result", "Machine ID"]
       ]
       const parsedCsvData = Papa.unparse(csvData, { header: false })
       const headerCsv = Papa.unparse(headerLines)
@@ -311,9 +312,9 @@ export default function DashboardClient() {
                     <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black">Media Name</TableHead>
                     <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black">Start Time</TableHead>
                     <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black">End Time</TableHead>
-                    <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black text-right">Length</TableHead>
-                    <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black text-center">Outcome</TableHead>
-                    <TableHead className="font-black uppercase text-black h-14 text-right">Device Pin</TableHead>
+                    <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black text-right">Duration</TableHead>
+                    <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black text-center">Result</TableHead>
+                    <TableHead className="font-black uppercase text-black h-14 text-right">Machine ID</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -333,8 +334,8 @@ export default function DashboardClient() {
                           <TableCell className="text-black font-mono border-r-2 border-black bg-blue-50/50">{new Date(row.end_time).toLocaleString()}</TableCell>
                           <TableCell className="text-right text-black font-mono font-bold border-r-2 border-black">{row.duration_text}</TableCell>
                           <TableCell className="text-center border-r-2 border-black">
-                            <span className={`inline-flex items-center px-3 py-1 text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0_0_#000] ${row.play_result === 'Succeed' ? 'bg-[#ffc900] text-black' : 'bg-[#ff90e8] text-black'}`}>
-                              {row.play_result}
+                            <span className={`inline-flex items-center px-3 py-1 text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0_0_#000] ${row.play_result === 'Succeed' ? 'bg-[#05df72] text-white' : 'bg-[#ff90e8] text-black'}`}>
+                              {row.play_result === 'Succeed' ? 'SUCCESS' : 'FAILED'}
                             </span>
                           </TableCell>
                           <TableCell className="text-right text-black font-black bg-gray-50/50">{row.machine_id}</TableCell>
