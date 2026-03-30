@@ -307,8 +307,8 @@ export default function DashboardClient() {
           <Card className="shadow-[8px_8px_0_0_#000] rounded-none border-4 border-black bg-white">
             <div className="overflow-x-auto min-h-[500px]">
               <Table className="w-full">
-                <TableHeader className="bg-[#ffc900] sticky top-0 border-b-4 border-black z-20">
-                  <TableRow className="hover:bg-[#ffc900]">
+                <TableHeader className="bg-white sticky top-0 border-b-4 border-black z-20">
+                  <TableRow className="hover:bg-white">
                     <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black">Media Name</TableHead>
                     <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black">Start Time</TableHead>
                     <TableHead className="font-black uppercase text-black h-14 border-r-2 border-black">End Time</TableHead>
