@@ -5,12 +5,12 @@ export async function GET(req: NextRequest) {
   try {
     let currentPage = 0;
     const CHUNK_SIZE = 1000;
-    const uniqueNames = new Set<string>();
+    const uniqueIds = new Set<string>();
 
     while (true) {
       const { data, error } = await supabase
         .from("play_log_details")
-        .select("media_name")
+        .select("machine_id")
         .range(currentPage * CHUNK_SIZE, (currentPage + 1) * CHUNK_SIZE - 1);
 
       if (error) throw new Error(error.message);
@@ -18,17 +18,17 @@ export async function GET(req: NextRequest) {
 
       // Deduplicate into the active set
       data.forEach(d => {
-        if (d.media_name) uniqueNames.add(d.media_name);
+        if (d.machine_id && d.machine_id.trim() !== '') uniqueIds.add(d.machine_id);
       });
 
       if (data.length < CHUNK_SIZE) break;
       currentPage++;
     }
 
-    const sortedNames = Array.from(uniqueNames).sort((a, b) => a.localeCompare(b));
+    const sortedIds = Array.from(uniqueIds).sort((a, b) => a.localeCompare(b));
 
-    return NextResponse.json({ success: true, data: sortedNames });
+    return NextResponse.json({ success: true, data: sortedIds });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to fetch media names" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to fetch machine IDs" }, { status: 500 });
   }
 }

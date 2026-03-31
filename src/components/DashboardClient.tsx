@@ -29,6 +29,8 @@ export default function DashboardClient() {
   const [limit] = useState(50)
 
   const [availableNames, setAvailableNames] = useState<string[]>([])
+  const [availableMachineIds, setAvailableMachineIds] = useState<string[]>([])
+  const [filterMachineId, setFilterMachineId] = useState("All")
   const [reports, setReports] = useState<any[]>([])
   const [loadingReports, setLoadingReports] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -36,11 +38,16 @@ export default function DashboardClient() {
   
   const [activeTab, setActiveTab] = useState("analytics")
 
-  // Fetch Media Names for Dropdown
+  // Fetch Dropdown Metadata
   useEffect(() => {
     fetch("/api/media-names")
       .then(res => res.json())
       .then(d => { if (d.success) setAvailableNames(d.data) })
+      .catch(() => {})
+      
+    fetch("/api/machine-ids")
+      .then(res => res.json())
+      .then(d => { if (d.success) setAvailableMachineIds(d.data) })
       .catch(() => {})
   }, [])
 
@@ -85,10 +92,14 @@ export default function DashboardClient() {
     setUploading(false)
     setFiles([])
     
-    // Re-fetch media names just in case new ones appeared
+    // Re-fetch media names and machine ids just in case new ones appeared
     fetch("/api/media-names")
       .then(res => res.json())
       .then(d => { if (d.success) setAvailableNames(d.data) })
+      
+    fetch("/api/machine-ids")
+      .then(res => res.json())
+      .then(d => { if (d.success) setAvailableMachineIds(d.data) })
       
     setPage(1)
   }
@@ -120,6 +131,7 @@ export default function DashboardClient() {
       if (startDate) params.append("startDate", startDate)
       if (endDate) params.append("endDate", endDate)
       if (mediaName && mediaName !== "All") params.append("name", mediaName)
+      if (filterMachineId && filterMachineId !== "All") params.append("machineId", filterMachineId)
       if (resultStatus && resultStatus !== "All") params.append("resultStatus", resultStatus)
       params.append("page", page.toString())
       params.append("limit", limit.toString())
@@ -148,6 +160,7 @@ export default function DashboardClient() {
       if (startDate) params.append("startDate", startDate)
       if (endDate) params.append("endDate", endDate)
       if (mediaName && mediaName !== "All") params.append("name", mediaName)
+      if (filterMachineId && filterMachineId !== "All") params.append("machineId", filterMachineId)
       if (resultStatus && resultStatus !== "All") params.append("resultStatus", resultStatus)
       params.append("exportAll", "true") 
 
@@ -242,19 +255,37 @@ export default function DashboardClient() {
           <Card className="shadow-[8px_8px_0_0_#000] rounded-none border-4 border-black bg-white">
             <CardContent className="p-6 md:p-8 flex flex-col md:flex-row md:items-end gap-6 bg-white">
               
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                 <div className="space-y-2">
                   <Label className="text-sm font-black text-black uppercase tracking-widest pl-1">Media Identity</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-5 w-5 text-black z-10" />
                     <Select value={mediaName} onValueChange={(val) => setMediaName(val || "All")}>
                       <SelectTrigger className="pl-10 h-12 border-2 border-black bg-[#fffdf7] rounded-none font-bold text-black focus:ring-0 shadow-[2px_2px_0_0_#000]">
-                        <SelectValue placeholder="Select Target Media" />
+                        <SelectValue placeholder="Target Media" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px] border-2 border-black rounded-none shadow-[4px_4px_0_0_#000]">
                         <SelectItem value="All" className="font-bold text-black uppercase">** ALL MEDIA ASSETS **</SelectItem>
                         {availableNames.map(name => (
                           <SelectItem key={name} value={name} className="font-semibold text-black">{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-black text-black uppercase tracking-widest pl-1">Machine ID</Label>
+                  <div className="relative">
+                    <MonitorPlay className="absolute left-3 top-3 h-5 w-5 text-black z-10" />
+                    <Select value={filterMachineId} onValueChange={(val) => setFilterMachineId(val || "All")}>
+                      <SelectTrigger className="pl-10 h-12 border-2 border-black bg-[#fffdf7] rounded-none font-bold text-black focus:ring-0 shadow-[2px_2px_0_0_#000]">
+                        <SelectValue placeholder="Machine ID" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px] border-2 border-black rounded-none shadow-[4px_4px_0_0_#000]">
+                        <SelectItem value="All" className="font-bold text-black uppercase">** ALL MACHINES **</SelectItem>
+                        {availableMachineIds.map(id => (
+                          <SelectItem key={id} value={id} className="font-semibold text-black">{id}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
