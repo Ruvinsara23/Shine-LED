@@ -14,53 +14,27 @@ export async function GET(req: NextRequest) {
     const limitParams = parseInt(searchParams.get('limit') || '50', 10);
     const startOffset = (page - 1) * limitParams;
     const endOffset = startOffset + limitParams - 1;
-    const isExport = searchParams.get('exportAll') === 'true';
 
-    // Base query builder
-    const buildQuery = (q: any) => {
-      if (startDate) q = q.gte('start_time', `${startDate}T00:00:00.000Z`);
-      if (endDate) q = q.lte('start_time', `${endDate}T23:59:59.999Z`);
-      if (name && name !== 'All') q = q.eq('media_name', name);
-      if (machineId && machineId !== 'All') q = q.eq('machine_id', machineId);
-      if (resultStatus && resultStatus !== 'All') q = q.eq('play_result', resultStatus);
-      return q.order('start_time', { ascending: true }); // ASCENDING ORDER ADDED
-    };
-
-    if (isExport) {
-      // FULL DATABASE EXPORT LOOP (Bypasses Supabase 1000 clamp)
-      let allData: any[] = [];
-      let currentPage = 0;
-      const CHUNK_SIZE = 1000;
+    let query = supabase.from("play_log_details").select("*", { count: "exact" });
+    
+    if (startDate) query = query.gte('start_time', `${startDate}T00:00:00.000Z`);
+    if (endDate) query = query.lte('start_time', `${endDate}T23:59:59.999Z`);
+    if (name && name !== 'All') query = query.eq('media_name', name);
+    if (machineId && machineId !== 'All') query = query.eq('machine_id', machineId);
+    if (resultStatus && resultStatus !== 'All') query = query.eq('play_result', resultStatus);
+    
+    query = query.order('start_time', { ascending: true }); // ASCENDING ORDER
+    query = query.range(startOffset, endOffset);
       
-      while (true) {
-        let exportQuery = buildQuery(supabase.from("play_log_details").select("*"));
-        exportQuery = exportQuery.range(currentPage * CHUNK_SIZE, (currentPage + 1) * CHUNK_SIZE - 1);
-        
-        const { data: chunk, error } = await exportQuery;
-        if (error) throw new Error(error.message);
-        
-        if (!chunk || chunk.length === 0) break;
-        allData = allData.concat(chunk);
-        
-        if (chunk.length < CHUNK_SIZE) break;
-        currentPage++;
-      }
-      return NextResponse.json({ data: allData, totalCount: allData.length });
-    } else {
-      // PAGINATION VIEW
-      let query = buildQuery(supabase.from("play_log_details").select("*", { count: "exact" }));
-      query = query.range(startOffset, endOffset);
-      
-      const { data, count, error } = await query;
-      if (error) throw new Error(error.message);
+    const { data, count, error } = await query;
+    if (error) throw new Error(error.message);
 
-      return NextResponse.json({
-        data,
-        totalCount: count,
-        page,
-        limit: limitParams
-      });
-    }
+    return NextResponse.json({
+      data,
+      totalCount: count,
+      page,
+      limit: limitParams
+    });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Failed to fetch reports" }, { status: 500 });

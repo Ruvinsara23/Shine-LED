@@ -30,10 +30,15 @@ export default function DashboardClient() {
 
   const [availableNames, setAvailableNames] = useState<string[]>([])
   const [availableMachineIds, setAvailableMachineIds] = useState<string[]>([])
+  const [availableOutcomes, setAvailableOutcomes] = useState<string[]>([]) // NEW
   const [filterMachineId, setFilterMachineId] = useState("All")
   const [reports, setReports] = useState<any[]>([])
   const [loadingReports, setLoadingReports] = useState(false)
+  
+  // Export tracking
   const [exporting, setExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState<{done: number, total: number} | null>(null) // NEW
+  
   const [totalCount, setTotalCount] = useState(0)
   
   const [activeTab, setActiveTab] = useState("analytics")
@@ -48,6 +53,11 @@ export default function DashboardClient() {
     fetch("/api/machine-ids")
       .then(res => res.json())
       .then(d => { if (d.success) setAvailableMachineIds(d.data) })
+      .catch(() => {})
+      
+    fetch("/api/play-results")
+      .then(res => res.json())
+      .then(d => { if (d.success) setAvailableOutcomes(d.data) })
       .catch(() => {})
   }, [])
 
@@ -150,53 +160,76 @@ export default function DashboardClient() {
     setLoadingReports(false)
   }
 
-  // Export Full CSV Logic
+  // Export Full CSV Logic (Client-Side Streamer)
   const exportCSV = async () => {
     if (totalCount === 0) return alert("NO DATA TO EXPORT.")
     setExporting(true)
+    setExportProgress({ done: 0, total: totalCount })
     
     try {
+      let currentPage = 1;
+      const CHUNK_SIZE = 5000;
+      let allCsvData: any[] = [];
+      
       const params = new URLSearchParams()
       if (startDate) params.append("startDate", startDate)
       if (endDate) params.append("endDate", endDate)
       if (mediaName && mediaName !== "All") params.append("name", mediaName)
       if (filterMachineId && filterMachineId !== "All") params.append("machineId", filterMachineId)
       if (resultStatus && resultStatus !== "All") params.append("resultStatus", resultStatus)
-      params.append("exportAll", "true") 
+      params.append("limit", CHUNK_SIZE.toString())
 
-      const res = await fetch(`/api/reports?${params.toString()}`)
-      const json = await res.json()
-      
-      if (!res.ok) throw new Error(json.error)
-      
-      const fullData = json.data || []
-      
-      const csvData = fullData.map((r: any) => ({
-        "Media Name": r.media_name,
-        "Start Time": new Date(r.start_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
-        "End Time": new Date(r.end_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
-        "Duration": r.duration_text,
-        "Result": r.play_result === 'Succeed' ? 'SUCCESS' : 'FAILED',
-        "Machine ID": r.machine_id
-      }))
+      while (true) {
+        params.set("page", currentPage.toString())
+        const res = await fetch(`/api/reports?${params.toString()}`)
+        const json = await res.json()
+        
+        if (!res.ok) throw new Error(json.error)
+        
+        const chunk = json.data || []
+        if (chunk.length === 0) break;
+        
+        const formattedChunk = chunk.map((r: any) => ({
+          "Media Name": r.media_name,
+          "Start Time": new Date(r.start_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
+          "End Time": new Date(r.end_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
+          "Duration": r.duration_text,
+          "Result": r.play_result === 'Succeed' ? 'SUCCESS' : 'FAILED',
+          "Machine ID": r.machine_id
+        }))
+        
+        allCsvData = allCsvData.concat(formattedChunk)
+        setExportProgress({ done: allCsvData.length, total: totalCount })
+        
+        if (chunk.length < CHUNK_SIZE) break;
+        currentPage++;
+      }
       
       const headerLines = [
         ["Play Log Report", "", "", "", "", ""],
         ["Media Name", "Start Time", "End Time", "Duration", "Result", "Machine ID"]
       ]
-      const parsedCsvData = Papa.unparse(csvData, { header: false })
-      const headerCsv = Papa.unparse(headerLines)
       
-      const finalBlob = new Blob([headerCsv + "\n" + parsedCsvData], { type: 'text/csv;charset=utf-8;' })
+      const parsedCsvData = Papa.unparse(allCsvData, { header: false })
+      const headerCsv = Papa.unparse(headerLines)
+      const finalCsv = headerCsv + "\n" + parsedCsvData
+
+      // Generate secure client-side download Blob
+      const blob = new Blob([finalCsv], { type: "text/csv;charset=utf-8;" })
       const link = document.createElement("a")
-      link.href = URL.createObjectURL(finalBlob)
-      link.download = `${mediaName === "All" ? "All_Media" : mediaName}_${startDate || "Start"}_to_${endDate || "End"}.csv`
+      const url = URL.createObjectURL(blob)
+      link.setAttribute("href", url)
+      link.setAttribute("download", `PlayLog_${new Date().getTime()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
       link.click()
-    } catch(err) {
-       alert("FAILED TO EXPORT FULL DATA")
+      document.body.removeChild(link)
+      
+    } catch (err: any) {
+      alert("Failed to export: " + err.message)
     }
-    
     setExporting(false)
+    setExportProgress(null)
   }
 
   const totalPages = Math.ceil(totalCount / limit)
@@ -230,7 +263,9 @@ export default function DashboardClient() {
               variant="default"
             >
               <Download className="mr-2 h-5 w-5" />
-              {exporting ? "Generating Extract..." : "Download Full CSV"}
+              {exporting && exportProgress 
+                ? `Exporting: ${(exportProgress.done).toLocaleString()} / ${(exportProgress.total).toLocaleString()}` 
+                : "Download Full CSV"}
             </Button>
           )}
         </div>
@@ -315,9 +350,10 @@ export default function DashboardClient() {
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent className="border-2 border-black rounded-none shadow-[4px_4px_0_0_#000]">
-                      <SelectItem value="All" className="font-bold text-black">ALL STATUSES</SelectItem>
-                      <SelectItem value="Succeed" className="font-black text-green-600 bg-green-50">SUCCEED</SelectItem>
-                      <SelectItem value="Failed" className="font-black text-red-600 bg-red-50">FAILED</SelectItem>
+                      <SelectItem value="All" className="font-bold text-black uppercase">** ANY OUTCOME **</SelectItem>
+                      {availableOutcomes.map(outcome => (
+                        <SelectItem key={outcome} value={outcome} className="font-semibold text-black uppercase">{outcome}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

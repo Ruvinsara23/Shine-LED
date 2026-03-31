@@ -3,31 +3,15 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
   try {
-    let currentPage = 0;
-    const CHUNK_SIZE = 1000;
-    const uniqueNames = new Set<string>();
+    // Harness the power of the blazing fast RPC PostgreSQL function!
+    const { data, error } = await supabase.rpc('get_distinct_media_names');
 
-    while (true) {
-      const { data, error } = await supabase
-        .from("play_log_details")
-        .select("media_name")
-        .range(currentPage * CHUNK_SIZE, (currentPage + 1) * CHUNK_SIZE - 1);
+    if (error) throw new Error(error.message);
 
-      if (error) throw new Error(error.message);
-      if (!data || data.length === 0) break;
+    // Extract the strings gracefully
+    const uniqueNames = (data || []).map((row: any) => row.media_name);
 
-      // Deduplicate into the active set
-      data.forEach(d => {
-        if (d.media_name) uniqueNames.add(d.media_name);
-      });
-
-      if (data.length < CHUNK_SIZE) break;
-      currentPage++;
-    }
-
-    const sortedNames = Array.from(uniqueNames).sort((a, b) => a.localeCompare(b));
-
-    return NextResponse.json({ success: true, data: sortedNames });
+    return NextResponse.json({ success: true, data: uniqueNames });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Failed to fetch media names" }, { status: 500 });
   }
