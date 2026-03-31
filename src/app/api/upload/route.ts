@@ -37,9 +37,15 @@ export async function POST(req: NextRequest) {
 
     // Map to DB insert objects
     const rows = itemsArray.map((item: any) => {
-      // Parse dates safely. Plylog format: "2026/01/05 13:07:29.067" -> Convert to standard ISO Date strings
-      const start = item.StartTime ? new Date(item.StartTime.replace(/\//g, "-")).toISOString() : null;
-      const end = item.StopTime ? new Date(item.StopTime.replace(/\//g, "-")).toISOString() : null;
+      // Parse dates exactly as they perfectly appeared in the original log without local timezone shifting
+      const cleanDate = (d: any) => {
+        if (!d) return null;
+        // e.g "2026/01/05 13:30:00.692" -> "2026-01-05T13:30:00.692Z"
+        return String(d).replace(/\//g, "-").replace(" ", "T") + "Z";
+      };
+
+      const start = cleanDate(item.StartTime);
+      const end = cleanDate(item.StopTime);
 
       return {
         machine_id: machineId || "UNKNOWN",

@@ -61,6 +61,13 @@ export default function DashboardClient() {
       .catch(() => {})
   }, [])
 
+  // Helper to ensure XML Date perfectly mirrors original source 
+  // without browser timezone shifts or discarded milliseconds
+  const formatExactDate = (isoString: string) => {
+    if (!isoString) return "";
+    return isoString.replace('T', ' ').replace('Z', '').replace(/-/g, '/');
+  }
+
   // Automatically fetch reports when page changes
   useEffect(() => {
     if (activeTab === "analytics") {
@@ -168,7 +175,7 @@ export default function DashboardClient() {
     
     try {
       let currentPage = 1;
-      const CHUNK_SIZE = 5000;
+      const CHUNK_SIZE = 1000;
       let allCsvData: any[] = [];
       
       const params = new URLSearchParams()
@@ -191,8 +198,8 @@ export default function DashboardClient() {
         
         const formattedChunk = chunk.map((r: any) => ({
           "Media Name": r.media_name,
-          "Start Time": new Date(r.start_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
-          "End Time": new Date(r.end_time).toLocaleString('en-GB', { hour12: false }).replace(',', ''),
+          "Start Time": formatExactDate(r.start_time),
+          "End Time": formatExactDate(r.end_time),
           "Duration": r.duration_text,
           "Result": r.play_result === 'Succeed' ? 'SUCCESS' : 'FAILED',
           "Machine ID": r.machine_id
@@ -397,8 +404,8 @@ export default function DashboardClient() {
                       {reports.map((row) => (
                         <TableRow key={row.id} className="transition-colors hover:bg-[#fffdf7] border-b-2 border-black">
                           <TableCell className="font-bold text-black border-r-2 border-black">{row.media_name}</TableCell>
-                          <TableCell className="text-black font-mono border-r-2 border-black bg-blue-50/50">{new Date(row.start_time).toLocaleString()}</TableCell>
-                          <TableCell className="text-black font-mono border-r-2 border-black bg-blue-50/50">{new Date(row.end_time).toLocaleString()}</TableCell>
+                          <TableCell className="text-black font-mono border-r-2 border-black bg-blue-50/50">{formatExactDate(row.start_time)}</TableCell>
+                          <TableCell className="text-black font-mono border-r-2 border-black bg-blue-50/50">{formatExactDate(row.end_time)}</TableCell>
                           <TableCell className="text-right text-black font-mono font-bold border-r-2 border-black">{row.duration_text}</TableCell>
                           <TableCell className="text-center border-r-2 border-black">
                             <span className={`inline-flex items-center px-3 py-1 text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0_0_#000] ${row.play_result === 'Succeed' ? 'bg-[#05df72] text-white' : 'bg-[#ff90e8] text-black'}`}>
