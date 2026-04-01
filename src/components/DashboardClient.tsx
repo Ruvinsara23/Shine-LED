@@ -62,10 +62,12 @@ export default function DashboardClient() {
   }, [])
 
   // Helper to ensure XML Date perfectly mirrors original source 
-  // without browser timezone shifts or discarded milliseconds
+  // without browser timezone shifts or messy milliseconds
   const formatExactDate = (isoString: string) => {
     if (!isoString) return "";
-    return isoString.replace('T', ' ').replace('Z', '').replace(/-/g, '/');
+    // e.g. "2026-02-25T07:04:21.613+00:00" -> "2026-02-25 07:04:21"
+    const cleaned = isoString.split('.')[0].split('+')[0].split('Z')[0];
+    return cleaned.replace('T', ' ').replace(/-/g, '/');
   }
 
   // Automatically fetch reports when page changes
@@ -175,7 +177,7 @@ export default function DashboardClient() {
     
     try {
       let currentPage = 1;
-      const CHUNK_SIZE = 1000;
+      const CHUNK_SIZE = 900;
       let allCsvData: any[] = [];
       
       const params = new URLSearchParams()
