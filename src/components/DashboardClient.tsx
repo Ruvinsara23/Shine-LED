@@ -200,8 +200,9 @@ export default function DashboardClient() {
         
         const formattedChunk = chunk.map((r: any) => ({
           "Media Name": r.media_name,
-          "Start Time": formatExactDate(r.start_time),
-          "End Time": formatExactDate(r.end_time),
+          // Prepend tab or space to prevent Excel from auto-formatting into local short-date
+          "Start Time": "\t" + formatExactDate(r.start_time),
+          "End Time": "\t" + formatExactDate(r.end_time),
           "Duration": r.duration_text,
           "Result": r.play_result === 'Succeed' ? 'SUCCESS' : 'FAILED',
           "Machine ID": r.machine_id
