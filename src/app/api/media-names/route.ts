@@ -3,8 +3,18 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
   try {
-    // Harness the power of the blazing fast RPC PostgreSQL function!
-    const { data, error } = await supabase.rpc('get_distinct_media_names');
+    const { searchParams } = new URL(req.url);
+    const machineIdParam = searchParams.get('machineId');
+    
+    let machineIds: string[] = [];
+    if (machineIdParam && machineIdParam !== 'All') {
+      machineIds = machineIdParam.split(',').map(m => m.trim()).filter(Boolean);
+    }
+
+    // Use the new RPC function which accepts an array of text (empty array means "no filter")
+    const { data, error } = await supabase.rpc('get_distinct_media_names_by_machine', {
+      machine_ids: machineIds
+    });
 
     if (error) throw new Error(error.message);
 

@@ -19,10 +19,19 @@ export async function GET(req: NextRequest) {
     
     if (startDate) query = query.gte('start_time', `${startDate}T00:00:00.000Z`);
     if (endDate) query = query.lte('start_time', `${endDate}T23:59:59.999Z`);
-    if (name && name !== 'All') query = query.eq('media_name', name);
-    if (machineId && machineId !== 'All') query = query.eq('machine_id', machineId);
-    if (resultStatus && resultStatus !== 'All') query = query.eq('play_result', resultStatus);
     
+    // Convert comma-separated string to array and use .in() filter
+    if (name && name !== 'All') {
+      const nameArr = name.split(',').map(n => n.trim()).filter(Boolean);
+      if (nameArr.length > 0) query = query.in('media_name', nameArr);
+    }
+    
+    if (machineId && machineId !== 'All') {
+      const machineArr = machineId.split(',').map(m => m.trim()).filter(Boolean);
+      if (machineArr.length > 0) query = query.in('machine_id', machineArr);
+    }
+    
+    if (resultStatus && resultStatus !== 'All') query = query.eq('play_result', resultStatus);    
     query = query.order('start_time', { ascending: true }); // ASCENDING ORDER
     query = query.range(startOffset, endOffset);
       

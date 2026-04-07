@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MultiSelect } from "@/components/MultiSelect"
 
 export default function DashboardClient() {
   const [files, setFiles] = useState<File[]>([])
@@ -23,7 +24,7 @@ export default function DashboardClient() {
   // Filters & Pagination
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [mediaName, setMediaName] = useState("All")
+  const [filterMediaNames, setFilterMediaNames] = useState<string[]>([])
   const [resultStatus, setResultStatus] = useState("All")
   const [page, setPage] = useState(1)
   const [limit] = useState(50)
@@ -31,7 +32,7 @@ export default function DashboardClient() {
   const [availableNames, setAvailableNames] = useState<string[]>([])
   const [availableMachineIds, setAvailableMachineIds] = useState<string[]>([])
   const [availableOutcomes, setAvailableOutcomes] = useState<string[]>([]) // NEW
-  const [filterMachineId, setFilterMachineId] = useState("All")
+  const [filterMachineIds, setFilterMachineIds] = useState<string[]>([])
   const [reports, setReports] = useState<any[]>([])
   const [loadingReports, setLoadingReports] = useState(false)
   
@@ -43,13 +44,8 @@ export default function DashboardClient() {
   
   const [activeTab, setActiveTab] = useState("analytics")
 
-  // Fetch Dropdown Metadata
+  // Fetch Initial Dropdown Metadata
   useEffect(() => {
-    fetch("/api/media-names")
-      .then(res => res.json())
-      .then(d => { if (d.success) setAvailableNames(d.data) })
-      .catch(() => {})
-      
     fetch("/api/machine-ids")
       .then(res => res.json())
       .then(d => { if (d.success) setAvailableMachineIds(d.data) })
@@ -60,6 +56,15 @@ export default function DashboardClient() {
       .then(d => { if (d.success) setAvailableOutcomes(d.data) })
       .catch(() => {})
   }, [])
+
+  // Cascading update: Fetch Media Names when selected Machine IDs change
+  useEffect(() => {
+    const machineIdsParam = filterMachineIds.length > 0 ? filterMachineIds.join(',') : 'All';
+    fetch(`/api/media-names?machineId=${machineIdsParam}`)
+      .then(res => res.json())
+      .then(d => { if (d.success) setAvailableNames(d.data) })
+      .catch(() => {})
+  }, [filterMachineIds])
 
   // Helper to ensure XML Date perfectly mirrors original source 
   // without browser timezone shifts or messy milliseconds
@@ -149,8 +154,8 @@ export default function DashboardClient() {
       const params = new URLSearchParams()
       if (startDate) params.append("startDate", startDate)
       if (endDate) params.append("endDate", endDate)
-      if (mediaName && mediaName !== "All") params.append("name", mediaName)
-      if (filterMachineId && filterMachineId !== "All") params.append("machineId", filterMachineId)
+      if (filterMediaNames.length > 0 && filterMediaNames.length < availableNames.length) params.append("name", filterMediaNames.join(','))
+      if (filterMachineIds.length > 0 && filterMachineIds.length < availableMachineIds.length) params.append("machineId", filterMachineIds.join(','))
       if (resultStatus && resultStatus !== "All") params.append("resultStatus", resultStatus)
       params.append("page", page.toString())
       params.append("limit", limit.toString())
@@ -183,8 +188,8 @@ export default function DashboardClient() {
       const params = new URLSearchParams()
       if (startDate) params.append("startDate", startDate)
       if (endDate) params.append("endDate", endDate)
-      if (mediaName && mediaName !== "All") params.append("name", mediaName)
-      if (filterMachineId && filterMachineId !== "All") params.append("machineId", filterMachineId)
+      if (filterMediaNames.length > 0 && filterMediaNames.length < availableNames.length) params.append("name", filterMediaNames.join(','))
+      if (filterMachineIds.length > 0 && filterMachineIds.length < availableMachineIds.length) params.append("machineId", filterMachineIds.join(','))
       if (resultStatus && resultStatus !== "All") params.append("resultStatus", resultStatus)
       params.append("limit", CHUNK_SIZE.toString())
 
@@ -301,40 +306,26 @@ export default function DashboardClient() {
             <CardContent className="p-6 md:p-8 flex flex-col md:flex-row md:items-end gap-6 bg-white">
               
               <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-                <div className="space-y-2">
+                <div className="space-y-2 relative z-50">
                   <Label className="text-sm font-black text-black uppercase tracking-widest pl-1">Media Identity</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-5 w-5 text-black z-10" />
-                    <Select value={mediaName} onValueChange={(val) => setMediaName(val || "All")}>
-                      <SelectTrigger className="pl-10 h-12 border-2 border-black bg-[#fffdf7] rounded-none font-bold text-black focus:ring-0 shadow-[2px_2px_0_0_#000]">
-                        <SelectValue placeholder="Target Media" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px] border-2 border-black rounded-none shadow-[4px_4px_0_0_#000]">
-                        <SelectItem value="All" className="font-bold text-black uppercase">** ALL MEDIA ASSETS **</SelectItem>
-                        {availableNames.map(name => (
-                          <SelectItem key={name} value={name} className="font-semibold text-black">{name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <MultiSelect
+                    placeholder="Target Media"
+                    icon={<Search className="h-5 w-5" />}
+                    options={availableNames}
+                    selected={filterMediaNames}
+                    onChange={setFilterMediaNames}
+                  />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 relative z-40">
                   <Label className="text-sm font-black text-black uppercase tracking-widest pl-1">Machine ID</Label>
-                  <div className="relative">
-                    <MonitorPlay className="absolute left-3 top-3 h-5 w-5 text-black z-10" />
-                    <Select value={filterMachineId} onValueChange={(val) => setFilterMachineId(val || "All")}>
-                      <SelectTrigger className="pl-10 h-12 border-2 border-black bg-[#fffdf7] rounded-none font-bold text-black focus:ring-0 shadow-[2px_2px_0_0_#000]">
-                        <SelectValue placeholder="Machine ID" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px] border-2 border-black rounded-none shadow-[4px_4px_0_0_#000]">
-                        <SelectItem value="All" className="font-bold text-black uppercase">** ALL MACHINES **</SelectItem>
-                        {availableMachineIds.map(id => (
-                          <SelectItem key={id} value={id} className="font-semibold text-black">{id}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <MultiSelect
+                    placeholder="Machine ID"
+                    icon={<MonitorPlay className="h-5 w-5" />}
+                    options={availableMachineIds}
+                    selected={filterMachineIds}
+                    onChange={setFilterMachineIds}
+                  />
                 </div>
                 
                 <div className="space-y-2">
