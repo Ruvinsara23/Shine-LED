@@ -44,6 +44,10 @@ export default function DashboardClient() {
   
   const [activeTab, setActiveTab] = useState("analytics")
 
+  // Modal State
+  const [clearModalOpen, setClearModalOpen] = useState(false)
+  const [clearMachineIds, setClearMachineIds] = useState<string[]>([])
+
   // Fetch Initial Dropdown Metadata
   useEffect(() => {
     fetch("/api/machine-ids")
@@ -128,17 +132,31 @@ export default function DashboardClient() {
     setPage(1)
   }
 
-  // Clear DB
-  const handleClearDB = async () => {
-    if (!confirm("Are you absolutely sure you want to completely erase the database? This cannot be undone!")) return;
+  // Trigger Danger Modal
+  const openClearModal = () => {
+    setClearMachineIds([])
+    setClearModalOpen(true)
+  }
+
+  // Confirm Selective Clear DB
+  const handleConfirmClear = async () => {
+    // If empty array, default to doing "ALL" wipe.
+    // We already give visual warning for this.
     try {
-      const res = await fetch("/api/clear-db", { method: "POST" });
+      const res = await fetch("/api/clear-db", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ machineIds: clearMachineIds.length > 0 && clearMachineIds.length === availableMachineIds.length ? [] : clearMachineIds }) // pass empty array for full wipe if they manually select 'all'
+      });
       const json = await res.json();
       if (res.ok) {
-        alert("Database cleared successfully!");
+        alert(json.message);
         setReports([]);
         setTotalCount(0);
-        setAvailableNames([]);
+        setClearModalOpen(false);
+        // re-fetch data to reflect potentially empty states globally
+        fetch("/api/media-names").then(r => r.json()).then(d => { if(d.success) setAvailableNames(d.data) })
+        fetch("/api/machine-ids").then(r => r.json()).then(d => { if(d.success) setAvailableMachineIds(d.data) })
       } else {
         alert(json.error || "Failed to clear DB");
       }
@@ -262,7 +280,7 @@ export default function DashboardClient() {
         {/* Top Actions */}
         <div className="flex items-center space-x-4">
           <Button 
-            onClick={handleClearDB} 
+            onClick={openClearModal} 
             className="h-12 border-2 border-black bg-[#ff90e8] hover:bg-[#ff90e8]/80 text-black font-black uppercase tracking-wider shadow-[4px_4px_0_0_#000] active:translate-y-1 active:shadow-none transition-all rounded-none" 
             variant="default"
           >
@@ -538,6 +556,51 @@ export default function DashboardClient() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Danger Zone Modal */}
+      {clearModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0_0_#000] p-8 max-w-xl w-full flex flex-col gap-6">
+            <div className="flex items-center gap-3 border-b-4 border-black pb-4">
+              <Trash2 className="w-10 h-10 text-red-500" />
+              <h2 className="text-3xl font-black uppercase tracking-wider text-black">Danger Zone</h2>
+            </div>
+            
+            <p className="text-black font-semibold text-lg">
+              Select the specific <span className="font-black bg-yellow-200 px-1 border-2 border-black inline-block leading-none mt-1 shadow-[2px_2px_0_0_#000]">Machine IDs</span> you wish to wipe from the log database. 
+              <br/><br/>
+              <span className="text-red-500 font-black">WARNING:</span> If you leave this empty or select <b>ALL</b>, the ENTIRE DATABASE (including all origin upload receipt logs) will be erased permanently.
+            </p>
+
+            <div className="space-y-2 relative z-50">
+              <Label className="text-sm font-black text-black uppercase tracking-widest pl-1">Target Machine IDs To Delete</Label>
+              <MultiSelect
+                placeholder="Select Machines to Wipe..."
+                icon={<MonitorPlay className="h-5 w-5" />}
+                options={availableMachineIds}
+                selected={clearMachineIds}
+                onChange={setClearMachineIds}
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-4 pt-4 border-t-4 border-black">
+              <Button 
+                variant="outline" 
+                onClick={() => setClearModalOpen(false)}
+                className="h-12 px-6 border-2 border-black font-black uppercase text-black hover:bg-gray-100 shadow-[2px_2px_0_0_#000] rounded-none active:translate-y-1 active:shadow-none transition-all"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmClear} 
+                className="h-12 px-6 border-2 border-black bg-red-500 hover:bg-red-600 text-white font-black uppercase shadow-[2px_2px_0_0_#000] rounded-none active:translate-y-1 active:shadow-none transition-all"
+              >
+                CONFIRM DELETION
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

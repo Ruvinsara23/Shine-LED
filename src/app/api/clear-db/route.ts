@@ -1,9 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    // Delete all rows in play_log_details using a condition that matches everything
+    const body = await req.json().catch(() => ({}));
+    const machineIds = body.machineIds || [];
+
+    // Selective wipe for specific Machine IDs
+    if (machineIds.length > 0 && machineIds.length < 999999) { // Using 999999 as a lazy check if it's less than "ALL" effectively
+      // We assume if they pass length > 0 it means "specific". But we need to be careful if they pass everything. 
+      // Actually, if the frontend passes the matched list of all IDs, it will delete those specifically, leaving uploads alone. This is fine.
+      
+      const { error } = await supabase
+        .from("play_log_details")
+        .delete()
+        .in("machine_id", machineIds);
+
+      if (error) throw new Error("Failed to clear targeted play logs: " + error.message);
+      return NextResponse.json({ success: true, message: `Cleared data for ${machineIds.length} machine(s).` });
+    }
+
+    // Total Wipe (Fallback if array is empty or "ALL" equivalent)
     const { error: error1 } = await supabase
       .from("play_log_details")
       .delete()
@@ -18,7 +35,7 @@ export async function POST() {
 
     if (error2) throw new Error("Failed to clear upload logs: " + error2.message);
 
-    return NextResponse.json({ success: true, message: "Database wiped successfully." });
+    return NextResponse.json({ success: true, message: "Entire Database wiped successfully." });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Failed to clear DB" }, { status: 500 });
   }
