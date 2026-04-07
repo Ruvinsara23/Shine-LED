@@ -47,6 +47,7 @@ export default function DashboardClient() {
   // Modal State
   const [clearModalOpen, setClearModalOpen] = useState(false)
   const [clearMachineIds, setClearMachineIds] = useState<string[]>([])
+  const [notification, setNotification] = useState<{message: string, isError: boolean} | null>(null)
 
   // Fetch Initial Dropdown Metadata
   useEffect(() => {
@@ -150,7 +151,7 @@ export default function DashboardClient() {
       });
       const json = await res.json();
       if (res.ok) {
-        alert(json.message);
+        setNotification({ message: json.message, isError: false });
         setReports([]);
         setTotalCount(0);
         setClearModalOpen(false);
@@ -158,10 +159,10 @@ export default function DashboardClient() {
         fetch("/api/media-names").then(r => r.json()).then(d => { if(d.success) setAvailableNames(d.data) })
         fetch("/api/machine-ids").then(r => r.json()).then(d => { if(d.success) setAvailableMachineIds(d.data) })
       } else {
-        alert(json.error || "Failed to clear DB");
+        setNotification({ message: json.error || "Failed to clear DB", isError: true });
       }
     } catch {
-      alert("Failed to clear DB due to a network error.");
+      setNotification({ message: "Failed to clear DB due to a network error.", isError: true });
     }
   }
 
@@ -598,6 +599,32 @@ export default function DashboardClient() {
                 CONFIRM DELETION
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {notification && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0_0_#000] p-8 max-w-sm w-full flex flex-col gap-6 text-center animate-in zoom-in-95">
+            <div className={`p-4 border-4 border-black inline-block mx-auto shadow-[4px_4px_0_0_#000] ${notification.isError ? 'bg-[#ff90e8]' : 'bg-[#05df72]'}`}>
+              <Activity className="w-10 h-10 text-white stroke-[3px]" />
+            </div>
+            
+            <h2 className="text-3xl font-black uppercase tracking-wider text-black">
+              {notification.isError ? "Error" : "Success"}
+            </h2>
+            
+            <p className="text-black font-semibold text-lg border-4 border-black p-4 bg-[#fffdf7] shadow-[inset_2px_2px_0_rgba(0,0,0,0.1)]">
+              {notification.message}
+            </p>
+
+            <Button 
+                onClick={() => setNotification(null)} 
+                className="h-14 w-full border-4 border-black bg-[#ffc900] hover:bg-[#ffc900]/80 text-black font-black uppercase text-xl shadow-[4px_4px_0_0_#000] rounded-none active:translate-y-1 active:shadow-none transition-all"
+              >
+                Acknowledge
+            </Button>
           </div>
         </div>
       )}
