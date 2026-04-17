@@ -48,10 +48,10 @@ export async function POST(req: NextRequest) {
       const end = cleanDate(item.StopTime);
 
       return {
-        machine_id: machineId || "UNKNOWN",
+        machine_id: String(machineId || "UNKNOWN").trim(),
         source_file_name: file.name,
-        // Direct <Name> mapping, securely removing .mp4 or other extensions
-        media_name: String(item.Name || "Unknown").replace(/\.[^/.]+$/, ""),
+        // Direct <Name> mapping, securely removing .mp4 or other extensions and any lingering trailing spaces
+        media_name: String(item.Name || "Unknown").replace(/\.[^/.]+$/, "").trim(),
         play_result: String(item.PlayResult || "Unknown"), // e.g., "Succeed"
         start_time: start,
         end_time: end,

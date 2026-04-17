@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     
     let machineIds: string[] = [];
     if (machineIdParam && machineIdParam !== 'All') {
-      machineIds = machineIdParam.split(',').map(m => m.trim()).filter(Boolean);
+      machineIds = machineIdParam.split(',').filter(Boolean);
     }
 
     // Use the new RPC function which accepts an array of text (empty array means "no filter")

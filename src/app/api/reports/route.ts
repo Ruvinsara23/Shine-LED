@@ -22,12 +22,12 @@ export async function GET(req: NextRequest) {
     
     // Convert comma-separated string to array and use .in() filter
     if (name && name !== 'All') {
-      const nameArr = name.split(',').map(n => n.trim()).filter(Boolean);
+      const nameArr = name.split(',').filter(Boolean);
       if (nameArr.length > 0) query = query.in('media_name', nameArr);
     }
     
     if (machineId && machineId !== 'All') {
-      const machineArr = machineId.split(',').map(m => m.trim()).filter(Boolean);
+      const machineArr = machineId.split(',').filter(Boolean);
       if (machineArr.length > 0) query = query.in('machine_id', machineArr);
     }
     
